@@ -11,8 +11,14 @@ exports.createProduct=async(req,res)=>{
 }
 
 exports.fetchAllProducts=async(req,res)=>{
-    let query = Product.find({})
-    let totalProductQuery = Product.find({})
+
+    let condition = {}
+    if(!req.query.admin){
+        condition = {deleted:{$ne:true}}
+    }
+
+    let query = Product.find(condition)
+    let totalProductQuery = Product.find(condition)
   
     if(req.query.category){
         query = query.find({category:req.query.category})
@@ -32,7 +38,7 @@ exports.fetchAllProducts=async(req,res)=>{
     }
    
     const totalDocs = await totalProductQuery.count().exec()
-    console.log({totalDocs})
+    // console.log({totalDocs})
 
     try {
         const docs = await query.exec()
