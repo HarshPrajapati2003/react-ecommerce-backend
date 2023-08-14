@@ -11,18 +11,9 @@ exports.createUser=async(req,res)=>{
 }
 
 exports.loginUser=async(req,res)=>{
-    try {
-        const user = await User.findOne({email:req.body.email})
-        // console.log(user)
-        if(!user){
-            res.status(401).json({message:"no email exist"})
-        }
-        else if(user.password===req.body.password){
-            res.status(200).json({id:user.id,role:user.role})
-        }else{
-            res.status(401).json({message:"invalid credential"})
-        }
-    } catch (err) {
-        res.status(400).json(err.message)
-    }
+   res.json(req.user)
 }
+
+exports.checkUser=async(req,res)=>{
+    res.json(req.user)
+ }
