@@ -9,6 +9,7 @@ const LocalStrategy = require("passport-local").Strategy;
 const crypto = require('crypto');
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
+const cookieParser = require('cookie-parser')
 
 const { createProduct } = require("./Controller/Product");
 const productsRouters = require("./routes/Products");
@@ -19,18 +20,19 @@ const authRouters = require("./routes/Auth");
 const cartRouters = require("./routes/Cart");
 const orderRouter = require("./routes/Order");
 const {User} = require("./model/User");
-const { isAuth, sanitizeUser } = require("./Services/common");
+const { isAuth, sanitizeUser, cookieExtractor } = require("./Services/common");
 
 const SECRET_KEY = 'SECRET_KEY'
 
 // JWT option
+
 var opts = {}
-opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+opts.jwtFromRequest = cookieExtractor
 opts.secretOrKey = 'SECRET_KEY';
 
-
 // middlewares
-
+server.use(express.static('build'))
+server.use(cookieParser())
 server.use(
   session({
     secret: "keyboard cat",
@@ -38,6 +40,7 @@ server.use(
     saveUninitialized: false, // don't create session until something stored
   })
 );
+
 server.use(passport.authenticate("session"));
 
 server.use(
@@ -69,7 +72,7 @@ passport.use('local',
             return done(null, false, { message: "invalid credential" });
           } 
           const token = jwt.sign(sanitizeUser(user),SECRET_KEY)
-          done(null,token);       // this line sends to serializeUser function
+          done(null,{token});       // this line sends to serializeUser function
       })
       
     } catch (err) {
@@ -82,7 +85,7 @@ passport.use('local',
 passport.use('jwt',new JwtStrategy(opts,async function(jwt_payload, done) {
     console.log({jwt_payload})
     try {
-        const user = await User.findOne({id: jwt_payload.sub});
+        const user = await User.findById(jwt_payload.id);
         if (user) {
             return done(null,sanitizeUser(user));   // this calls serializer
         }
@@ -119,11 +122,11 @@ async function main() {
   console.log("database connected");
 }
 
-server.get("/", (req, res) => {
-  res.json({ status: "success" });
-});
+// server.get("/", (req, res) => {
+//   res.json({ status: "success" });
+// });
 
-server.post("/products", createProduct);
+// server.post("/products", createProduct);
 
 server.listen(8080, () => {
   console.log("server started");
