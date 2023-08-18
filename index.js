@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const server = express();
 const cors = require("cors");
@@ -22,20 +23,51 @@ const orderRouter = require("./routes/Order");
 const {User} = require("./model/User");
 const { isAuth, sanitizeUser, cookieExtractor } = require("./Services/common");
 
-const SECRET_KEY = 'SECRET_KEY'
+// webhook (========> web hook requires express.raw parser formate so webhook put always top of the application <==========)
+
+// This is your Stripe CLI webhook secret for testing your endpoint locally.
+const endpointSecret = process.env.ENDPOINT_SECRET;
+
+server.post('/webhook', express.raw({type: 'application/json'}), (request, response) => {
+  const sig = request.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+  } catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntentSucceeded = event.data.object;
+      console.log("payment Intent Succeeded : ",paymentIntentSucceeded)
+      // Then define and call a function to handle the event payment_intent.succeeded
+      break;
+    // ... handle other event types
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Return a 200 response to acknowledge receipt of the event
+  response.send();
+});
 
 // JWT option
 
 var opts = {}
 opts.jwtFromRequest = cookieExtractor
-opts.secretOrKey = 'SECRET_KEY';
+opts.secretOrKey = process.env.JWT_SECRET_KEY;
 
 // middlewares
 server.use(express.static('build'))
 server.use(cookieParser())
 server.use(
   session({
-    secret: "keyboard cat",
+    secret: process.env.SESSION_KEY,
     resave: false, // don't save session if unmodified
     saveUninitialized: false, // don't create session until something stored
   })
@@ -49,7 +81,6 @@ server.use(
   })
 );
 
-server.use(express.raw({type:'application/json'}))
 server.use(express.json()); // to parse req.body
 server.use("/products",isAuth(), productsRouters.router);
 server.use("/categories",isAuth(), categoriesRouters.router);
@@ -72,7 +103,7 @@ passport.use('local',
           if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
             return done(null, false, { message: "invalid credential" });
           } 
-          const token = jwt.sign(sanitizeUser(user),SECRET_KEY)
+          const token = jwt.sign(sanitizeUser(user),process.env.JWT_SECRET_KEY)
           done(null,{id:user.id,role:user.role});       // this line sends to serializeUser function
       })
       
@@ -119,7 +150,7 @@ passport.deserializeUser(function (user, cb) {
 // Payment
 
 // This is your test secret API key.
-const stripe = require("stripe")('sk_test_51NfReISGgyI56pEZ1CWVMhRuiu49gvd33dKpFy4AaOlia9WmbMAsyfDxS5kNsahUHG43lCmDwlN7a5B66KzFJNsT00NG3kPBK0');
+const stripe = require("stripe")(process.env.STRIPE_SERVER_KEY);
 
 server.post("/create-payment-intent", async (req, res) => {
   const { totalAmount } = req.body;
@@ -138,44 +169,11 @@ server.post("/create-payment-intent", async (req, res) => {
   });
 });
 
-// webhook
-
-// This is your Stripe CLI webhook secret for testing your endpoint locally.
-const endpointSecret = "whsec_69fd447f904a486613246c9699dd64adde1a7a52215d747802a1048836931e5b";
-
-server.post('/webhook', express.raw({type: 'application/json'}), (request, response) => {
-  const sig = request.headers['stripe-signature'];
-
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-  } catch (err) {
-    response.status(400).send(`Webhook Error: ${err.message}`);
-    return;
-  }
-
-  // Handle the event
-  switch (event.type) {
-    case 'payment_intent.succeeded':
-      const paymentIntentSucceeded = event.data.object;
-      // Then define and call a function to handle the event payment_intent.succeeded
-      break;
-    // ... handle other event types
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
-
-  // Return a 200 response to acknowledge receipt of the event
-  response.send();
-});
-
-
 
 main().catch((err) => console.log(err));
 
 async function main() {
-  await mongoose.connect("mongodb://localhost:27017/ecommerce");
+  await mongoose.connect(process.env.MONGODB_URL);
   console.log("database connected");
 }
 
@@ -183,6 +181,6 @@ server.get('/',(req,res)=>{
   res.send("this is server side......")
 })
 
-server.listen(8080, () => {
+server.listen(process.env.PORT, () => {
   console.log("server started");
 });
