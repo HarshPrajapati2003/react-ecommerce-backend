@@ -49,6 +49,7 @@ server.use(
   })
 );
 
+server.use(express.raw({type:'application/json'}))
 server.use(express.json()); // to parse req.body
 server.use("/products",isAuth(), productsRouters.router);
 server.use("/categories",isAuth(), categoriesRouters.router);
@@ -115,6 +116,62 @@ passport.deserializeUser(function (user, cb) {
   });
 });
 
+// Payment
+
+// This is your test secret API key.
+const stripe = require("stripe")('sk_test_51NfReISGgyI56pEZ1CWVMhRuiu49gvd33dKpFy4AaOlia9WmbMAsyfDxS5kNsahUHG43lCmDwlN7a5B66KzFJNsT00NG3kPBK0');
+
+server.post("/create-payment-intent", async (req, res) => {
+  const { totalAmount } = req.body;
+
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: totalAmount*100, // *100 is for extends amount upto decimal 
+    currency: "inr",
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret,
+  });
+});
+
+// webhook
+
+// This is your Stripe CLI webhook secret for testing your endpoint locally.
+const endpointSecret = "whsec_69fd447f904a486613246c9699dd64adde1a7a52215d747802a1048836931e5b";
+
+server.post('/webhook', express.raw({type: 'application/json'}), (request, response) => {
+  const sig = request.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+  } catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntentSucceeded = event.data.object;
+      // Then define and call a function to handle the event payment_intent.succeeded
+      break;
+    // ... handle other event types
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Return a 200 response to acknowledge receipt of the event
+  response.send();
+});
+
+
+
 main().catch((err) => console.log(err));
 
 async function main() {
@@ -122,11 +179,9 @@ async function main() {
   console.log("database connected");
 }
 
-// server.get("/", (req, res) => {
-//   res.json({ status: "success" });
-// });
-
-// server.post("/products", createProduct);
+server.get('/',(req,res)=>{
+  res.send("this is server side......")
+})
 
 server.listen(8080, () => {
   console.log("server started");
