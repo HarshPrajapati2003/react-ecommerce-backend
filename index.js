@@ -22,6 +22,7 @@ const cartRouters = require("./routes/Cart");
 const orderRouter = require("./routes/Order");
 const {User} = require("./model/User");
 const { isAuth, sanitizeUser, cookieExtractor } = require("./Services/common");
+const path = require('path')
 
 // webhook (========> web hook requires express.raw parser formate so webhook put always top of the application <==========)
 
@@ -63,7 +64,7 @@ opts.jwtFromRequest = cookieExtractor
 opts.secretOrKey = process.env.JWT_SECRET_KEY;
 
 // middlewares
-server.use(express.static('build'))
+server.use(express.static(path.resolve(__dirname,'build'))) 
 server.use(cookieParser())
 server.use(
   session({
@@ -104,7 +105,7 @@ passport.use('local',
             return done(null, false, { message: "invalid credential" });
           } 
           const token = jwt.sign(sanitizeUser(user),process.env.JWT_SECRET_KEY)
-          done(null,{id:user.id,role:user.role});       // this line sends to serializeUser function
+          done(null,{id:user.id,role:user.role,token});       // this line sends to serializeUser function
       })
       
     } catch (err) {
@@ -119,6 +120,7 @@ passport.use('jwt',new JwtStrategy(opts,async function(jwt_payload, done) {
     try {
         const user = await User.findById(jwt_payload.id);
         if (user) {
+          console.log("hello")
             return done(null,sanitizeUser(user));   // this calls serializer
         }
         else {
