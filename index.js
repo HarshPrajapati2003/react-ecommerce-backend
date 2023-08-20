@@ -22,14 +22,15 @@ const cartRouters = require("./routes/Cart");
 const orderRouter = require("./routes/Order");
 const {User} = require("./model/User");
 const { isAuth, sanitizeUser, cookieExtractor } = require("./Services/common");
-const path = require('path')
+const path = require('path');
+const { Order } = require('./model/Order');
 
 // webhook (========> web hook requires express.raw parser formate so webhook put always top of the application <==========)
 
 // This is your Stripe CLI webhook secret for testing your endpoint locally.
 const endpointSecret = process.env.ENDPOINT_SECRET;
 
-server.post('/webhook', express.raw({type: 'application/json'}), (request, response) => {
+server.post('/webhook', express.raw({type: 'application/json'}), async (request, response) => {
   const sig = request.headers['stripe-signature'];
 
   let event;
@@ -42,10 +43,16 @@ server.post('/webhook', express.raw({type: 'application/json'}), (request, respo
   }
 
   // Handle the event
+  //to run this code in localhost you have to login by using strip login command and change the ENDPOINT_SECRET by sample endpoint which is provided in --> https://dashboard.stripe.com/test/webhooks/create?endpoint_location=local
+
   switch (event.type) {
     case 'payment_intent.succeeded':
       const paymentIntentSucceeded = event.data.object;
-      console.log("payment Intent Succeeded : ",paymentIntentSucceeded)
+      console.log("payment Intent Succeeded : ",paymentIntentSucceeded)  
+
+      const order = await Order.findById(paymentIntentSucceeded.metadata.orderId)
+      order.paymentStatus="received"
+      await order.save()
       // Then define and call a function to handle the event payment_intent.succeeded
       break;
     // ... handle other event types
