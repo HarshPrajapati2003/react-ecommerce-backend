@@ -90,7 +90,8 @@ server.use("/users",isAuth(), usersRouters.router);
 server.use("/auth", authRouters.router);
 server.use("/cart",isAuth(), cartRouters.router);
 server.use("/orders",isAuth(), orderRouter.router);
-
+// this line we add to make react router work in case of other routes doesn't match
+server.get('*',(req,res)=>res.sendFile(path.resolve('build',index.js)))
 // Passport local Strategies
 passport.use('local',
   new LocalStrategy({usernameField:'email'},async function (email, password, done) {
@@ -155,7 +156,7 @@ passport.deserializeUser(function (user, cb) {
 const stripe = require("stripe")(process.env.STRIPE_SERVER_KEY);
 
 server.post("/create-payment-intent", async (req, res) => {
-  const { totalAmount } = req.body;
+  const { totalAmount,orderId } = req.body;
 
   // Create a PaymentIntent with the order amount and currency
   const paymentIntent = await stripe.paymentIntents.create({
@@ -164,6 +165,9 @@ server.post("/create-payment-intent", async (req, res) => {
     automatic_payment_methods: {
       enabled: true,
     },
+    metadata:{
+      orderId
+    }
   });
 
   res.send({
