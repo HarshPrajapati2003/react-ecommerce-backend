@@ -1,4 +1,6 @@
+const nodemailer = require('nodemailer')
 const passport = require('passport')
+
 exports.isAuth=(req,res,done)=>{
     return passport.authenticate('jwt')
 }
@@ -17,4 +19,26 @@ exports.cookieExtractor = function(req) {
  
     return token;
   };
+
+// Emails
+const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: "hpd2683@gmail.com",
+      pass: process.env.MAIL_PASSWORD,
+    }, 
+  });
+
+exports.sendMail =async function({to,subject,text,html}){
+    // send mail with define transport object
+            let info = await transporter.sendMail({
+        from: '"Shop Haven" <hpd2683@gmail.com>', // sender address
+        to: to, // list of receivers
+        subject,// Subject line
+        text, // plain text body
+        html, // html body
+      });
+}
   

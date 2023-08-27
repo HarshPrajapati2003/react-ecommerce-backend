@@ -97,6 +97,8 @@ server.use("/users",isAuth(), usersRouters.router);
 server.use("/auth", authRouters.router);
 server.use("/cart",isAuth(), cartRouters.router);
 server.use("/orders",isAuth(), orderRouter.router);
+
+
 // this line we add to make react router work in case of other routes doesn't match
 server.get('*',(req,res)=>res.sendFile(path.resolve('build',"index.html")))
 // Passport local Strategies

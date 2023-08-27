@@ -8,7 +8,8 @@ const userSchema = new Schema({
     addresses:{type:[Schema.Types.Mixed]},
     name:{type:String},
     orders:{type:[Schema.Types.Mixed]},
-    salt:{type:Buffer}
+    salt:{type:Buffer},
+    resetPasswordToken:{type:String,default:''}
 })
 
 const virtual = userSchema.virtual('id')
