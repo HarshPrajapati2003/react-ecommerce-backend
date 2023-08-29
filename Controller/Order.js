@@ -1,5 +1,6 @@
 const { sendMail, invoiceTemplate } = require("../Services/common")
 const {Order} = require("../model/Order")
+const { Product } = require("../model/Product")
 const { User } = require("../model/User")
 
 exports.fetchOrdersByUser=async(req,res)=>{
@@ -14,6 +15,12 @@ exports.fetchOrdersByUser=async(req,res)=>{
 
 exports.createOrder=async(req,res)=>{
     const order = new Order(req.body)
+    // Here we have to update stocks
+    for(let item of order.items){
+        let product = await Product.findOne({_id:item.product.id})
+        product.$inc('stock',-1*item.quantity)
+        await product.save()
+    }
     try {
         const doc = await order.save();
         const user = await User.findById(order.user)
