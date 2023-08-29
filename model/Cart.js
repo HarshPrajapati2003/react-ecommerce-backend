@@ -4,7 +4,9 @@ const {Schema}=mongoose
 const cartSchema = new mongoose.Schema({
     quantity : {type:Number,required:true},
     product:{type:Schema.Types.ObjectId,ref:"Product",required:true},
-    user:{type:Schema.Types.ObjectId,ref:"User",required:true}
+    user:{type:Schema.Types.ObjectId,ref:"User",required:true},
+    color:{type:Schema.Types.Mixed},
+    size:{type:Schema.Types.Mixed},
 })
 
 const virtual = cartSchema.virtual('id')
