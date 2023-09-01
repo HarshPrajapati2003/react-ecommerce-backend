@@ -29,10 +29,14 @@ exports.fetchAllProducts=async(req,res)=>{
         query = query.find({brand:{$in:req.query.brand.split(',')}})//using split we conver it into array
         totalProductQuery = totalProductQuery.find({brand:{$in:req.query.brand.split(',')}})
     }
+    if(req.query.title){
+        query = query.find({title: { $regex: req.query.title, $options: 'i' }})
+        totalProductQuery = totalProductQuery.find({title: { $regex: req.query.title, $options: 'i' }})
+    }
     if(req.query._sort && req.query._order){
         query = query.sort({[req.query._sort]:req.query._order})
     }
-    if(req.query._page && req.query._limit){
+    if(req.query._page && req.query._limit){ 
         const pageSize = req.query._limit
         const page = req.query._page
         query=query.skip(pageSize*(page-1)).limit(pageSize)
@@ -71,5 +75,16 @@ exports.updateProduct=async(req,res)=>{
         res.status(200).json(updatedProduct)
     } catch (err) {
         res.status(400).json(err.message)
+    }
+}
+
+exports.searchProduct=async(req,res)=>{
+    const {title} = req.query
+    console.log(title)
+    try {
+        const product = await Product.find({title: { $regex: title, $options: 'i' }})
+        res.status(200).json(product)
+    } catch (error) {
+        res.status(401).json({message:"product not found"})
     }
 }
