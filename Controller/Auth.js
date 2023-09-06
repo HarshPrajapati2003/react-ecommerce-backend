@@ -73,7 +73,7 @@ exports.resetPassowrdRequest = async (req, res) => {
   const user = await User.findOne({email:email})
 if(user){
   // generate token for varify the user
-    const token = crypto.randomBytes(48).toString('hex')
+    const token = crypto.randomBytes(16).toString('hex')
     user.resetPasswordToken = token;
     await user.save()
     const resetPageLink = "https://react-ecommerce-backend-zeta.vercel.app/reset-password?token="+token+'&email='+email
